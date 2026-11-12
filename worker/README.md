@@ -34,10 +34,15 @@ Buka Worker **juru → Settings → Variables and Secrets**, lalu tekan **Add** 
 
 Pastikan tipenya **Secret** untuk PIN dan key, supaya nilainya tersembunyi setelah disimpan. Tekan **Deploy** atau **Save** kalau diminta.
 
-### 5. Salin alamat server
+### 5. Atur lokasi server (penting)
+Buka **Settings → Runtime → Placement**, pilih **Region → Google Cloud Platform (GCP) → asia-southeast1**, lalu **Deploy**.
+
+Tanpa pengaturan ini, permintaan dari sebagian jaringan seluler bisa dijalankan Cloudflare dari Hong Kong, dan Gemini menolaknya dengan pesan *"User location is not supported for the API use"*.
+
+### 6. Salin alamat server
 Alamat Worker-mu terlihat di halaman Worker, bentuknya seperti `https://juru.namaakunmu.workers.dev`.
 
-### 6. Sambungkan Juru
+### 7. Sambungkan Juru
 Di Juru, ketuk ikon kunci → **Server Juru** → isi **Alamat server** dan **PIN** → **Tes koneksi** → **Simpan**.
 
 Kalau alamat server sudah ditanamkan di aplikasi, perangkat baru cukup diisi PIN saja.
