@@ -39,6 +39,10 @@ Langganan ChatGPT Plus, Gemini Advanced, atau Claude Pro **tidak** termasuk akse
 
 Tekan **Tes koneksi** untuk memastikan key-nya benar. Tes ini juga memuat daftar model yang tersedia untuk key-mu, dan model mana pun dari daftar itu bisa kamu isi di kolom **Model lain**.
 
+## Server Juru: cukup PIN di setiap perangkat
+
+Supaya tidak perlu mengisi API key di setiap HP atau laptop, pasang **Server Juru** (gratis, di Cloudflare Workers). API key disimpan rahasia di server, dan perangkat cukup diisi PIN. Panduan lengkapnya ada di [`worker/README.md`](worker/README.md).
+
 ## Keamanan
 
 - API key **hanya disimpan di browser** (localStorage) di perangkat yang kamu pakai, dan dikirim langsung ke Google, OpenAI, atau Anthropic. Key **tidak** masuk ke repo ini.

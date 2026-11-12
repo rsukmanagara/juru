@@ -311,7 +311,7 @@
         <select id="model"></select>
         <svg class="i"><use href="#i-down"/></svg>
       </label>
-      <button class="key-btn" id="open-settings" aria-label="Pengaturan API key" title="Pengaturan API key"><svg class="i"><use href="#i-key"/></svg></button>
+      <button class="key-btn" id="open-settings" aria-label="Pengaturan akses AI" title="Pengaturan akses AI"><svg class="i"><use href="#i-key"/></svg></button>
     </div>
   </header>
 
@@ -329,8 +329,8 @@
   </div>
 
   <div class="banner" id="setup-banner" hidden>
-    <span>Tambahkan API key Gemini, ChatGPT, atau Claude dulu untuk mulai. Key hanya disimpan di browser ini.</span>
-    <button class="primary" data-open-settings>Tambah API key</button>
+    <span>Masukkan PIN Server Juru, atau API key Gemini, ChatGPT, atau Claude, untuk mulai</span>
+    <button class="primary" data-open-settings>Buka pengaturan</button>
   </div>
 
   <!-- Terjemahkan -->
@@ -448,15 +448,15 @@
 <dialog class="sheet" id="settings" aria-labelledby="set-title">
   <div class="sheet-in">
     <div class="sheet-head">
-      <h2 id="set-title">API key</h2>
+      <h2 id="set-title">Akses AI</h2>
       <button class="icon-btn" id="close-settings" aria-label="Tutup"><svg class="i"><use href="#i-x"/></svg></button>
     </div>
     <div class="sheet-body">
-      <p>Isi minimal satu. Key hanya disimpan di browser ini dan dikirim langsung ke penyedia AI, tidak lewat server lain. Jangan isi di komputer umum.</p>
+      <p>PIN dan key hanya disimpan di browser ini. Jangan isi di komputer umum.</p>
       <div id="prov-list"></div>
     </div>
     <div class="sheet-foot">
-      <button class="text-btn" id="clear-keys">Hapus semua key</button>
+      <button class="text-btn" id="clear-keys">Hapus key dan PIN</button>
       <button class="primary" id="save-keys">Simpan</button>
     </div>
   </div>
@@ -518,7 +518,31 @@
   var PROV_IDS = ["gemini", "openai", "anthropic"];
   function getKey(p){ return load("key:"+p, ""); }
   function getCustom(p){ return load("cm:"+p, ""); }
-  function hasAnyKey(){ return PROV_IDS.some(function(p){ return !!getKey(p); }); }
+  // Server Juru (Cloudflare Worker) — holds the API keys, devices only need a PIN.
+  var DEFAULT_SERVER = "";
+  var BASES = { gemini: "https://generativelanguage.googleapis.com", openai: "https://api.openai.com", anthropic: "https://api.anthropic.com" };
+  function serverUrl(){ return str(load("server:url", DEFAULT_SERVER)).replace(/\/+$/, ""); }
+  function serverPin(){ return load("server:pin", ""); }
+  function serverProv(){ try{ return JSON.parse(load("server:prov", "{}")) || {}; }catch(e){ return {}; } }
+  function viaServer(p){ return !getKey(p) && !!serverUrl() && !!serverPin() && !!serverProv()[p]; }
+  function hasAccess(p){ return !!getKey(p) || viaServer(p); }
+  function hasAnyKey(){ return PROV_IDS.some(hasAccess); }
+  // Where to send a request: straight to the provider with this device's key, or through Server Juru with the PIN.
+  function endpoint(p, path, key){
+    if(!key && viaServer(p)) return { url: serverUrl() + "/" + p + path, headers: { "x-juru-pin": serverPin() } };
+    var h = p === "gemini" ? { "x-goog-api-key": key }
+      : p === "openai" ? { "Authorization": "Bearer " + key }
+      : { "x-api-key": key, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" };
+    return { url: BASES[p] + path, headers: h };
+  }
+  async function pingServer(url, pin){
+    var res;
+    try{ res = await fetch(url.replace(/\/+$/, "") + "/ping", { headers: { "x-juru-pin": pin } }); }
+    catch(e){ throw AIError("server", e && e.message); }
+    if(!res.ok) await failFrom(res);
+    var j = await res.json();
+    return j.providers || {};
+  }
 
   function AIError(kind, message, status){ var e = new Error(message || kind); e.kind = kind; e.status = status || 0; return e; }
 
@@ -526,6 +550,8 @@
     var msg = "";
     try{ var j = await res.json(); msg = (j.error && (j.error.message || j.error.type)) || j.message || ""; }catch(e){}
     var s = res.status;
+    if(s === 401 && /PIN/.test(msg)) throw AIError("pin", msg, s);
+    if(s === 403 && /Situs ini tidak diizinkan/.test(msg)) throw AIError("origin", msg, s);
     if(s === 400 && /thinking|reasoning|unsupported|unknown name|unrecognized|not supported|invalid value/i.test(msg)) throw AIError("param", msg, s);
     if(s === 401 || s === 403) throw AIError("auth", msg, s);
     if(s === 429) throw AIError("rate", msg, s);
@@ -571,8 +597,8 @@
     var sel = (state.model || "").split("::"), p = sel[0], model = sel[1];
     var P = PROVIDERS[p];
     if(!P || !model) throw AIError("nokey");
+    if(!hasAccess(p)) throw AIError("nokey", p);
     var key = getKey(p);
-    if(!key) throw AIError("nokey", p);
     var full = "", emit = function(t){ if(!t) return; full += t; if(opts.onText) opts.onText(full); };
     var res;
     try{
@@ -580,9 +606,10 @@
         var gcfg = { temperature: 0.3 };
         if(opts.json) gcfg.responseMimeType = "application/json";
         if(fast) gcfg.thinkingConfig = /gemini-(1|2)\./.test(model) ? { thinkingBudget: 0 } : { thinkingLevel: "low" };
-        res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(model) + ":streamGenerateContent?alt=sse", {
-          method: "POST", signal: opts.signal,
-          headers: { "Content-Type": "application/json", "x-goog-api-key": key },
+        var eg = endpoint("gemini", "/v1beta/models/" + encodeURIComponent(model) + ":streamGenerateContent?alt=sse", key);
+        eg.headers["Content-Type"] = "application/json";
+        res = await fetch(eg.url, {
+          method: "POST", signal: opts.signal, headers: eg.headers,
           body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig: gcfg })
         });
         if(!res.ok) await failFrom(res);
@@ -595,9 +622,10 @@
         var body = { model: model, stream: true, messages: [{ role: "user", content: prompt }] };
         if(opts.json) body.response_format = { type: "json_object" };
         if(fast && /^(gpt-5|o\d)/.test(model)) body.reasoning_effort = "low";
-        res = await fetch("https://api.openai.com/v1/chat/completions", {
-          method: "POST", signal: opts.signal,
-          headers: { "Content-Type": "application/json", "Authorization": "Bearer " + key },
+        var eo = endpoint("openai", "/v1/chat/completions", key);
+        eo.headers["Content-Type"] = "application/json";
+        res = await fetch(eo.url, {
+          method: "POST", signal: opts.signal, headers: eo.headers,
           body: JSON.stringify(body)
         });
         if(!res.ok) await failFrom(res);
@@ -607,14 +635,10 @@
           if(c && c.delta) emit(c.delta.content);
         });
       }else{
-        res = await fetch("https://api.anthropic.com/v1/messages", {
-          method: "POST", signal: opts.signal,
-          headers: {
-            "Content-Type": "application/json",
-            "x-api-key": key,
-            "anthropic-version": "2023-06-01",
-            "anthropic-dangerous-direct-browser-access": "true"
-          },
+        var ea = endpoint("anthropic", "/v1/messages", key);
+        ea.headers["Content-Type"] = "application/json";
+        res = await fetch(ea.url, {
+          method: "POST", signal: opts.signal, headers: ea.headers,
           body: JSON.stringify({ model: model, max_tokens: 4096, stream: true, messages: [{ role: "user", content: prompt }] })
         });
         if(!res.ok) await failFrom(res);
@@ -625,7 +649,7 @@
       }
     }catch(e){
       if(e && (e.name === "AbortError" || e.kind)) throw e;
-      throw AIError("network", e && e.message);
+      throw AIError(key ? "network" : "server", e && e.message);
     }
     return full;
   }
@@ -634,18 +658,21 @@
     var res, ids = [];
     try{
       if(p === "gemini"){
-        res = await fetch("https://generativelanguage.googleapis.com/v1beta/models?pageSize=200", { headers: { "x-goog-api-key": key } });
+        var lg = endpoint("gemini", "/v1beta/models?pageSize=200", key);
+        res = await fetch(lg.url, { headers: lg.headers });
         if(!res.ok) await failFrom(res);
         var g = await res.json();
         ids = (g.models || []).filter(function(m){ return (m.supportedGenerationMethods || []).indexOf("generateContent") > -1; })
           .map(function(m){ return String(m.name || "").replace(/^models\//, ""); });
       }else if(p === "openai"){
-        res = await fetch("https://api.openai.com/v1/models", { headers: { "Authorization": "Bearer " + key } });
+        var lo = endpoint("openai", "/v1/models", key);
+        res = await fetch(lo.url, { headers: lo.headers });
         if(!res.ok) await failFrom(res);
         var o = await res.json();
         ids = (o.data || []).map(function(m){ return m.id; }).filter(function(id){ return /^(gpt|o\d|chat)/.test(id) && !/(audio|realtime|image|tts|transcribe|search|embed)/.test(id); });
       }else{
-        res = await fetch("https://api.anthropic.com/v1/models?limit=100", { headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" } });
+        var la = endpoint("anthropic", "/v1/models?limit=100", key);
+        res = await fetch(la.url, { headers: la.headers });
         if(!res.ok) await failFrom(res);
         var a = await res.json();
         ids = (a.data || []).map(function(m){ return m.id; });
@@ -681,7 +708,7 @@
     PROV_IDS.forEach(function(p){
       var P = PROVIDERS[p], list = P.models.slice(), cm = getCustom(p);
       if(cm && !list.some(function(m){ return m[0] === cm; })) list.push([cm, P.name + " · " + cm]);
-      out.push({ p: p, name: P.name, has: !!getKey(p), list: list });
+      out.push({ p: p, name: P.name, has: hasAccess(p), list: list });
     });
     return out;
   }
@@ -714,12 +741,27 @@
   // Settings dialog
   // =====================================================================
   var dlg = $("#settings");
+  function serverStatus(){
+    var prov = serverProv(), names = PROV_IDS.filter(function(p){ return prov[p]; }).map(function(p){ return PROVIDERS[p].name; });
+    if(serverUrl() && serverPin() && names.length) return { cls: "ok", text: "Tersambung · " + names.join(", ") };
+    return { cls: "", text: serverUrl() && !serverPin() ? "Isi PIN" : "Belum diisi" };
+  }
   function renderProviders(){
-    $("#prov-list").innerHTML = PROV_IDS.map(function(p){
+    var ss = serverStatus();
+    var server = '<section class="prov" id="server-box" style="margin-bottom:12px">' +
+      '<div class="prov-head"><div><b>Server Juru</b><small>Cukup PIN, tanpa API key di perangkat ini</small></div>' +
+        '<span class="pill ' + ss.cls + '" id="st-server">' + esc(ss.text) + '</span></div>' +
+      '<label class="field"><span>Alamat server</span><input id="srv-url" type="url" inputmode="url" value="' + esc(serverUrl()) + '" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://juru.namamu.workers.dev"></label>' +
+      '<label class="field"><span>PIN</span><input id="srv-pin" type="password" value="' + esc(serverPin()) + '" autocomplete="current-password" autocapitalize="off" spellcheck="false" placeholder="PIN yang kamu atur di server"></label>' +
+      '<div class="prov-actions"><a href="https://github.com/rsukmanagara/juru/blob/main/worker/README.md" target="_blank" rel="noopener">Panduan pasang server' + icon("arrow") + '</a>' +
+        '<button class="copy" data-test-server>Tes koneksi</button></div>' +
+    '</section>' +
+    '<p style="margin:4px 0 12px;font-size:13px;color:var(--muted)">Atau isi API key langsung di perangkat ini. Key di perangkat dipakai lebih dulu daripada server.</p>';
+    $("#prov-list").innerHTML = server + PROV_IDS.map(function(p){
       var P = PROVIDERS[p], key = getKey(p);
       return '<section class="prov" data-prov="' + p + '" style="margin-bottom:12px">' +
         '<div class="prov-head"><div><b>' + esc(P.name) + '</b><small>' + esc(P.tagline) + '</small></div>' +
-          '<span class="pill' + (key ? ' ok' : '') + '" id="st-' + p + '">' + (key ? "Tersimpan" : "Belum diisi") + '</span></div>' +
+          '<span class="pill' + (key || viaServer(p) ? ' ok' : '') + '" id="st-' + p + '">' + (key ? "Tersimpan" : viaServer(p) ? "Lewat server" : "Belum diisi") + '</span></div>' +
         '<label class="field"><span>API key</span><input type="password" id="key-' + p + '" value="' + esc(key) + '" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="' + esc(P.placeholder) + '"></label>' +
         '<label class="field"><span>Model lain (opsional)</span><input id="cm-' + p + '" list="dl-' + p + '" value="' + esc(getCustom(p)) + '" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Kosongkan kalau pakai model bawaan"></label>' +
         '<datalist id="dl-' + p + '"></datalist>' +
@@ -731,17 +773,38 @@
   function openSettings(focusProv){
     renderProviders();
     if(typeof dlg.showModal === "function") dlg.showModal(); else dlg.setAttribute("open", "");
-    var f = $("#key-" + (focusProv || PROV_IDS.filter(function(p){ return !getKey(p); })[0] || "gemini"));
+    var f = (serverUrl() && !serverPin()) ? $("#srv-pin") : (focusProv && !viaServer(focusProv)) ? $("#key-" + focusProv) : null;
     if(f) setTimeout(function(){ f.focus(); }, 50);
   }
   function closeSettings(){ if(dlg.open){ if(typeof dlg.close === "function") dlg.close(); else dlg.removeAttribute("open"); } }
-  function saveSettings(){
+  async function saveSettings(){
     PROV_IDS.forEach(function(p){
       save("key:"+p, str($("#key-"+p).value));
       save("cm:"+p, str($("#cm-"+p).value));
     });
+    var url = str($("#srv-url").value).replace(/\/+$/, ""), pin = str($("#srv-pin").value);
+    var changed = url !== serverUrl() || pin !== serverPin();
+    save("server:url", url === DEFAULT_SERVER ? "" : url);
+    if(!url && DEFAULT_SERVER) save("server:url", " ");
+    save("server:pin", pin);
+    if(url && pin && (changed || !Object.keys(serverProv()).length)){
+      var st = $("#st-server"), btn = $("#save-keys");
+      st.className = "pill"; st.textContent = "Mengecek"; btn.disabled = true;
+      try{ save("server:prov", JSON.stringify(await pingServer(url, pin))); }
+      catch(err){
+        save("server:prov", "");
+        st.className = "pill bad"; st.textContent = serverErrText(err);
+        btn.disabled = false; renderModelSelect();
+        return;
+      }
+      btn.disabled = false;
+    }
+    if(!url || !pin) save("server:prov", "");
     renderModelSelect();
     closeSettings();
+  }
+  function serverErrText(err){
+    return err.kind === "pin" ? "PIN salah" : err.kind === "origin" ? "Situs tidak diizinkan" : err.kind === "server" ? "Server tidak ditemukan" : "Gagal tersambung";
   }
   $("#open-settings").addEventListener("click", function(){ openSettings(); });
   document.addEventListener("click", function(e){ if(e.target.closest("[data-open-settings]")) openSettings(e.target.closest("[data-open-settings]").dataset.openSettings); });
@@ -750,9 +813,24 @@
   dlg.addEventListener("click", function(e){ if(e.target === dlg) closeSettings(); });
   $("#clear-keys").addEventListener("click", function(){
     PROV_IDS.forEach(function(p){ save("key:"+p, ""); save("cm:"+p, ""); });
+    save("server:pin", ""); save("server:prov", "");
     renderProviders(); renderModelSelect();
   });
   $("#prov-list").addEventListener("click", async function(e){
+    var sb = e.target.closest("[data-test-server]");
+    if(sb){
+      var url = str($("#srv-url").value), pin = str($("#srv-pin").value), sst = $("#st-server");
+      if(!url || !pin){ sst.className = "pill bad"; sst.textContent = !url ? "Isi alamat dulu" : "Isi PIN dulu"; return; }
+      sst.className = "pill"; sst.textContent = "Mengecek"; sb.disabled = true;
+      try{
+        var prov = await pingServer(url, pin);
+        var names = PROV_IDS.filter(function(p){ return prov[p]; }).map(function(p){ return PROVIDERS[p].name; });
+        sst.className = names.length ? "pill ok" : "pill bad";
+        sst.textContent = names.length ? "Tersambung · " + names.join(", ") : "Server belum punya API key";
+      }catch(err){ sst.className = "pill bad"; sst.textContent = serverErrText(err); }
+      finally{ sb.disabled = false; }
+      return;
+    }
     var b = e.target.closest("[data-test]"); if(!b) return;
     var p = b.dataset.test, key = str($("#key-"+p).value), st = $("#st-"+p);
     if(!key){ st.className = "pill bad"; st.textContent = "Isi key dulu"; return; }
@@ -777,7 +855,10 @@
   function errorHTML(e){
     var k = e && e.kind, name = (PROVIDERS[(state.model||"").split("::")[0]] || {}).name || "AI", msg;
     if(e && e.name === "SyntaxError") msg = "<b>Hasilnya tidak terbaca.</b> Coba tekan tombolnya sekali lagi, atau ganti model.";
-    else if(k === "nokey") msg = "<b>API key " + esc(name) + " belum diisi.</b> Tambahkan dulu di pengaturan, atau pilih model lain.";
+    else if(k === "nokey") msg = "<b>Belum ada akses ke " + esc(name) + ".</b> Masukkan PIN Server Juru atau API key di pengaturan, atau pilih model lain.";
+    else if(k === "pin") msg = "<b>PIN Server Juru salah.</b> Periksa lagi PIN-nya di pengaturan.";
+    else if(k === "server") msg = "<b>Server Juru tidak bisa dihubungi.</b> Periksa koneksi internetmu dan alamat server di pengaturan.";
+    else if(k === "origin") msg = "<b>Server Juru menolak situs ini.</b> Periksa pengaturan ALLOWED_ORIGIN di Cloudflare.";
     else if(k === "auth") msg = "<b>API key " + esc(name) + " ditolak.</b> Periksa lagi key-nya di pengaturan.";
     else if(k === "rate") msg = "<b>Batas pemakaian " + esc(name) + " tercapai.</b> Tunggu sebentar, lalu coba lagi. Kalau pakai kuota gratis Gemini, batasnya per menit dan per hari.";
     else if(k === "billing") msg = "<b>Saldo atau kuota " + esc(name) + " habis.</b> Isi saldo di platform " + esc(name) + ", atau ganti ke model lain.";
@@ -785,7 +866,7 @@
     else if(k === "timeout") msg = "<b>" + esc(name) + " terlalu lama menjawab.</b> Coba lagi, pilih model yang lebih cepat (misalnya Gemini Flash-Lite), atau pendekkan teksnya.";
     else if(k === "network") msg = "<b>Gagal tersambung ke " + esc(name) + ".</b> Periksa koneksi internetmu, lalu coba lagi.";
     else msg = "<b>Gagal memproses.</b> " + esc(e && e.message ? String(e.message).slice(0, 200) : "Coba lagi sebentar lagi.");
-    var btn = (k === "nokey" || k === "auth" || k === "model") ? ' <button class="copy" data-open-settings style="margin-top:8px">Buka pengaturan</button>' : "";
+    var btn = (k === "nokey" || k === "auth" || k === "model" || k === "pin" || k === "server") ? ' <button class="copy" data-open-settings style="margin-top:8px">Buka pengaturan</button>' : "";
     return note("err", msg + btn);
   }
   function setResult(mode, html){ $("#r-"+mode).innerHTML = html; $("#e-"+mode).hidden = !!html; }
@@ -972,7 +1053,7 @@
     if(!text){ setResult(mode, note("warn", "Tulis atau tempel teksnya dulu")); ta.focus(); return; }
     if(text.length > MAX){ setResult(mode, note("warn", "Teksnya terlalu panjang. Maksimal " + num(MAX) + " karakter, jadi bagi menjadi beberapa bagian.")); return; }
     var prov = (state.model || "").split("::")[0];
-    if(!getKey(prov)){ setResult(mode, errorHTML(AIError("nokey"))); return; }
+    if(!hasAccess(prov)){ setResult(mode, errorHTML(AIError("nokey"))); return; }
 
     if(controllers[mode]) controllers[mode].abort();
     var ctrl = new AbortController(); controllers[mode] = ctrl;
@@ -1196,10 +1277,13 @@
   if(["en-id","id-en"].indexOf(state.dir) === -1) state.dir = "en-id";
   if(["formal","casual"].indexOf(state.tone) === -1) state.tone = "formal";
   renderModelSelect();
+  if(serverUrl() && serverPin()){
+    pingServer(serverUrl(), serverPin()).then(function(prov){ save("server:prov", JSON.stringify(prov)); renderModelSelect(); }, function(err){ if(err && err.kind === "pin"){ save("server:prov", ""); renderModelSelect(); } });
+  }
   $("#model").addEventListener("change", function(){
     state.model = this.value; save("model", state.model);
     var p = state.model.split("::")[0];
-    if(!getKey(p)) openSettings(p);
+    if(!hasAccess(p)) openSettings(p);
   });
   var hashMode = (location.hash || "").slice(1);
   if(["translate","fix","explain"].indexOf(hashMode) > -1) state.mode = hashMode;
