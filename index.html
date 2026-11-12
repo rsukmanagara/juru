@@ -217,6 +217,7 @@
   }
 
   /* ---- GitHub version additions ---- */
+  .elapsed{margin:12px 0 0;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
   .top-actions{display:flex;align-items:center;gap:8px;min-width:0}
   .model select{max-width:min(56vw,260px);text-overflow:ellipsis}
   .key-btn{width:36px;height:36px;border:1px solid var(--line);background:var(--card);border-radius:10px;display:grid;place-items:center;color:var(--text-2);box-shadow:var(--shadow-sm);transition:border-color .15s var(--ease), color .15s var(--ease);position:relative;flex:none}
@@ -420,7 +421,7 @@
 <script>
 (function(){
   "use strict";
-  var MAX = 4000;
+  var MAX = 4000, TIMEOUT_MS = 90000;
   var $ = function(s, r){ return (r||document).querySelector(s); };
   var $$ = function(s, r){ return Array.prototype.slice.call((r||document).querySelectorAll(s)); };
   function icon(id){ return '<svg class="i" aria-hidden="true"><use href="#i-'+id+'"/></svg>'; }
@@ -475,19 +476,20 @@
   function getCustom(p){ return load("cm:"+p, ""); }
   function hasAnyKey(){ return PROV_IDS.some(function(p){ return !!getKey(p); }); }
 
-  function AIError(kind, message){ var e = new Error(message || kind); e.kind = kind; return e; }
+  function AIError(kind, message, status){ var e = new Error(message || kind); e.kind = kind; e.status = status || 0; return e; }
 
   async function failFrom(res){
     var msg = "";
     try{ var j = await res.json(); msg = (j.error && (j.error.message || j.error.type)) || j.message || ""; }catch(e){}
     var s = res.status;
-    if(s === 401 || s === 403) throw AIError("auth", msg);
-    if(s === 429) throw AIError("rate", msg);
-    if(s === 404) throw AIError("model", msg);
-    if(s === 400 && /model/i.test(msg)) throw AIError("model", msg);
-    if(s === 400 && /api.?key/i.test(msg)) throw AIError("auth", msg);
-    if(s === 402 || /quota|billing|credit|insufficient/i.test(msg)) throw AIError("billing", msg);
-    throw AIError("other", msg || ("HTTP " + s));
+    if(s === 400 && /thinking|reasoning|unsupported|unknown name|unrecognized|not supported|invalid value/i.test(msg)) throw AIError("param", msg, s);
+    if(s === 401 || s === 403) throw AIError("auth", msg, s);
+    if(s === 429) throw AIError("rate", msg, s);
+    if(s === 404) throw AIError("model", msg, s);
+    if(s === 400 && /model/i.test(msg)) throw AIError("model", msg, s);
+    if(s === 400 && /api.?key/i.test(msg)) throw AIError("auth", msg, s);
+    if(s === 402 || /quota|billing|credit|insufficient/i.test(msg)) throw AIError("billing", msg, s);
+    throw AIError("other", msg || ("HTTP " + s), s);
   }
 
   // Reads a Server-Sent Events stream and hands each JSON "data:" payload to onData.
@@ -509,8 +511,19 @@
   }
 
   // One call for every provider. Streams text through onText and returns the full answer.
+  // Tries the fast setting first (less "thinking"); if the model rejects that setting, retries once without it.
   async function callAI(prompt, opts){
     opts = opts || {};
+    var sel = (state.model || "").split("::"), memo = "fast:" + sel[0] + ":" + sel[1];
+    var fast = load(memo, "1") !== "0";
+    try{ return await callAIOnce(prompt, opts, fast); }
+    catch(e){
+      if(fast && e && e.kind === "param"){ save(memo, "0"); return await callAIOnce(prompt, opts, false); }
+      throw e;
+    }
+  }
+
+  async function callAIOnce(prompt, opts, fast){
     var sel = (state.model || "").split("::"), p = sel[0], model = sel[1];
     var P = PROVIDERS[p];
     if(!P || !model) throw AIError("nokey");
@@ -522,6 +535,7 @@
       if(p === "gemini"){
         var gcfg = { temperature: 0.3 };
         if(opts.json) gcfg.responseMimeType = "application/json";
+        if(fast) gcfg.thinkingConfig = /gemini-(1|2)\./.test(model) ? { thinkingBudget: 0 } : { thinkingLevel: "low" };
         res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(model) + ":streamGenerateContent?alt=sse", {
           method: "POST", signal: opts.signal,
           headers: { "Content-Type": "application/json", "x-goog-api-key": key },
@@ -536,6 +550,7 @@
       }else if(p === "openai"){
         var body = { model: model, stream: true, messages: [{ role: "user", content: prompt }] };
         if(opts.json) body.response_format = { type: "json_object" };
+        if(fast && /^(gpt-5|o\d)/.test(model)) body.reasoning_effort = "low";
         res = await fetch("https://api.openai.com/v1/chat/completions", {
           method: "POST", signal: opts.signal,
           headers: { "Content-Type": "application/json", "Authorization": "Bearer " + key },
@@ -713,7 +728,7 @@
   // UI helpers
   // =====================================================================
   function copyBtn(id){ return '<button class="copy" data-copy="'+id+'">'+icon("copy")+'<span>Salin</span></button>'; }
-  function skeleton(){ return '<div class="card"><div class="skeleton" aria-label="Sedang memproses"><i></i><i></i><i></i></div></div>'; }
+  function skeleton(){ return '<div class="card"><div class="skeleton" aria-label="Sedang memproses"><i></i><i></i><i></i></div><p class="elapsed">Memproses</p></div>'; }
   function note(kind, html){ return '<div class="note '+kind+'"'+(kind==="err"?' role="alert"':'')+'>'+icon("alert")+'<span>'+html+'</span></div>'; }
   function errorHTML(e){
     var k = e && e.kind, name = (PROVIDERS[(state.model||"").split("::")[0]] || {}).name || "AI", msg;
@@ -723,6 +738,7 @@
     else if(k === "rate") msg = "<b>Batas pemakaian " + esc(name) + " tercapai.</b> Tunggu sebentar, lalu coba lagi. Kalau pakai kuota gratis Gemini, batasnya per menit dan per hari.";
     else if(k === "billing") msg = "<b>Saldo atau kuota " + esc(name) + " habis.</b> Isi saldo di platform " + esc(name) + ", atau ganti ke model lain.";
     else if(k === "model") msg = "<b>Model ini tidak tersedia untuk key-mu.</b> Pilih model lain, atau isi nama model yang benar di pengaturan.";
+    else if(k === "timeout") msg = "<b>" + esc(name) + " terlalu lama menjawab.</b> Coba lagi, pilih model yang lebih cepat (misalnya Gemini Flash-Lite), atau pendekkan teksnya.";
     else if(k === "network") msg = "<b>Gagal tersambung ke " + esc(name) + ".</b> Periksa koneksi internetmu, lalu coba lagi.";
     else msg = "<b>Gagal memproses.</b> " + esc(e && e.message ? String(e.message).slice(0, 200) : "Coba lagi sebentar lagi.");
     var btn = (k === "nokey" || k === "auth" || k === "model") ? ' <button class="copy" data-open-settings style="margin-top:8px">Buka pengaturan</button>' : "";
@@ -916,6 +932,14 @@
 
     if(controllers[mode]) controllers[mode].abort();
     var ctrl = new AbortController(); controllers[mode] = ctrl;
+    var timedOut = false, t0 = Date.now();
+    var limit = setTimeout(function(){ timedOut = true; ctrl.abort(); }, TIMEOUT_MS);
+    var tick = setInterval(function(){
+      var sec = Math.round((Date.now() - t0) / 1000);
+      $$("#r-" + mode + " .elapsed").forEach(function(el){
+        el.textContent = sec < 8 ? "Memproses · " + sec + " dtk" : "Masih memproses · " + sec + " dtk. Teks panjang atau model yang teliti butuh waktu lebih lama";
+      });
+    }, 1000);
     btn.disabled = true; btn.classList.add("busy");
     setResult(mode, skeleton());
     try{
@@ -923,9 +947,10 @@
       else if(mode === "fix") await doFix(text, ctrl.signal);
       else await doExplain(text, ctrl.signal);
     }catch(e){
-      if(e && e.name === "AbortError") return;
-      if(controllers[mode] === ctrl) setResult(mode, errorHTML(e));
+      if(e && e.name === "AbortError" && !timedOut) return;
+      if(controllers[mode] === ctrl) setResult(mode, errorHTML(timedOut ? AIError("timeout") : e));
     }finally{
+      clearTimeout(limit); clearInterval(tick);
       if(controllers[mode] === ctrl){ btn.disabled = false; btn.classList.remove("busy"); }
     }
   }
@@ -949,7 +974,7 @@
     var meta = (state.tone === "formal" ? "Formal" : "Santai") + " · " + modelLabel();
     setResult("translate",
       '<div class="card"><div class="card-head"><h2>' + esc(LANG[p[1]]) + ' <span class="meta">· ' + esc(meta) + '</span></h2>' + copyBtn("out-translate") + '</div>' +
-      '<p class="out" id="out-translate"></p><div id="sk-translate"><div class="skeleton"><i></i><i></i><i></i></div></div></div>');
+      '<p class="out" id="out-translate"></p><div id="sk-translate"><div class="skeleton"><i></i><i></i><i></i></div><p class="elapsed">Memproses</p></div></div>');
     var target = $("#out-translate"), sk = $("#sk-translate");
     var clean = function(t){ return t.replace(/^\s*<teks>\s*|\s*<\/teks>\s*$/g, ""); };
     var full = await callAI(prompt, { signal: signal, onText: function(t){
