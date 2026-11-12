@@ -552,6 +552,7 @@
     try{ var j = await res.json(); msg = (j.error && (j.error.message || j.error.type)) || j.message || ""; }catch(e){}
     var s = res.status;
     if(s === 401 && /PIN/.test(msg)) throw AIError("pin", msg, s);
+    if(s === 503 || s === 500 || /high demand|overloaded|try again later|UNAVAILABLE/i.test(msg)) throw AIError("busy", msg, s);
     if(/location is not supported/i.test(msg)) throw AIError("location", msg, s);
     if(s === 403 && /Situs ini tidak diizinkan/.test(msg)) throw AIError("origin", msg, s);
     if(s === 400 && /thinking|reasoning|unsupported|unknown name|unrecognized|not supported|invalid value/i.test(msg)) throw AIError("param", msg, s);
@@ -584,19 +585,46 @@
 
   // One call for every provider. Streams text through onText and returns the full answer.
   // Tries the fast setting first (less "thinking"); if the model rejects that setting, retries once without it.
+  // When Gemini is overloaded ("high demand"), wait and retry, then fall back to the other Gemini model.
+  var busyNote = "", lastModel = "";
+  function sleep(ms, signal){
+    return new Promise(function(resolve, reject){
+      var t = setTimeout(resolve, ms);
+      if(signal) signal.addEventListener("abort", function(){ clearTimeout(t); reject(new DOMException("Aborted", "AbortError")); }, { once: true });
+    });
+  }
   async function callAI(prompt, opts){
     opts = opts || {};
-    var sel = (state.model || "").split("::"), memo = "fast:" + sel[0] + ":" + sel[1];
+    var sel = (state.model || "").split("::"), p = sel[0], main = sel[1];
+    var other = PROVIDERS[p].models.map(function(m){ return m[0]; }).filter(function(id){ return id !== main; })[0];
+    var plan = [{ model: main, wait: 0 }, { model: main, wait: 2000 }];
+    if(other) plan.push({ model: other, wait: 800 }, { model: other, wait: 3000 });
+    busyNote = ""; lastModel = main;
+    var lastErr;
+    for(var i = 0; i < plan.length; i++){
+      if(plan[i].wait) await sleep(plan[i].wait, opts.signal);
+      try{
+        lastModel = plan[i].model;
+        return await callModel(prompt, opts, p, plan[i].model);
+      }catch(e){
+        if(!(e && e.kind === "busy")) throw e;
+        lastErr = e;
+        busyNote = "Gemini sedang ramai, mencoba lagi" + (plan[i + 1] && plan[i + 1].model !== main ? " dengan " + labelFor(plan[i + 1].model) : "");
+      }
+    }
+    throw lastErr;
+  }
+  async function callModel(prompt, opts, p, model){
+    var memo = "fast:" + p + ":" + model;
     var fast = load(memo, "1") !== "0";
-    try{ return await callAIOnce(prompt, opts, fast); }
+    try{ return await callAIOnce(prompt, opts, fast, p, model); }
     catch(e){
-      if(fast && e && e.kind === "param"){ save(memo, "0"); return await callAIOnce(prompt, opts, false); }
+      if(fast && e && e.kind === "param"){ save(memo, "0"); return await callAIOnce(prompt, opts, false, p, model); }
       throw e;
     }
   }
 
-  async function callAIOnce(prompt, opts, fast){
-    var sel = (state.model || "").split("::"), p = sel[0], model = sel[1];
+  async function callAIOnce(prompt, opts, fast, p, model){
     var P = PROVIDERS[p];
     if(!P || !model) throw AIError("nokey");
     if(!hasAccess(p)) throw AIError("nokey", p);
@@ -694,7 +722,12 @@
     $("#setup-banner").hidden = any;
     $("#open-settings").classList.toggle("need", !any);
   }
+  function labelFor(id){
+    var m = (PROVIDERS.gemini.models.filter(function(x){ return x[0] === id; })[0]);
+    return m ? m[1].split(" · ")[0] : id;
+  }
   function modelLabel(){
+    if(lastModel) return labelFor(lastModel);
     var sel = $("#model"), o = sel.options[sel.selectedIndex];
     return o ? o.textContent.split(" · ")[0] : "";
   }
@@ -825,6 +858,7 @@
     else if(k === "rate") msg = "<b>Batas pemakaian " + esc(name) + " tercapai.</b> Tunggu sebentar, lalu coba lagi. Kalau pakai kuota gratis Gemini, batasnya per menit dan per hari.";
     else if(k === "billing") msg = "<b>Saldo atau kuota " + esc(name) + " habis.</b> Isi saldo di platform " + esc(name) + ", atau ganti ke model lain.";
     else if(k === "model") msg = "<b>Model ini tidak tersedia untuk key-mu.</b> Pilih model lain, atau isi nama model yang benar di pengaturan.";
+    else if(k === "busy") msg = "<b>Gemini sedang ramai.</b> Server Google sedang penuh dan sudah dicoba beberapa kali. Biasanya cepat pulih, jadi coba lagi dalam satu atau dua menit.";
     else if(k === "location") msg = "<b>Google menolak lokasi server saat ini.</b> Biasanya hanya sebentar. Coba tekan tombolnya lagi.";
     else if(k === "timeout") msg = "<b>" + esc(name) + " terlalu lama menjawab.</b> Coba lagi, pilih Gemini Flash-Lite yang lebih cepat, atau pendekkan teksnya.";
     else if(k === "network") msg = "<b>Gagal tersambung ke " + esc(name) + ".</b> Periksa koneksi internetmu, lalu coba lagi.";
@@ -1038,7 +1072,7 @@
     var tick = setInterval(function(){
       var sec = Math.round((Date.now() - t0) / 1000);
       $$("#r-" + mode + " .elapsed").forEach(function(el){
-        el.textContent = sec < 8 ? "Memproses · " + sec + " dtk" : "Masih memproses · " + sec + " dtk. Teks panjang atau model yang teliti butuh waktu lebih lama";
+        el.textContent = busyNote ? busyNote + " · " + sec + " dtk" : sec < 8 ? "Memproses · " + sec + " dtk" : "Masih memproses · " + sec + " dtk. Teks panjang atau model yang teliti butuh waktu lebih lama";
       });
     }, 1000);
     btn.disabled = true; btn.classList.add("busy");
@@ -1072,6 +1106,7 @@
       "Balas HANYA dengan hasil terjemahan — tanpa pembuka, catatan, tanda kutip, atau tag.\n\n" +
       "<teks>\n" + text + "\n</teks>";
 
+    lastModel = "";
     var meta = (state.tone === "formal" ? "Formal" : "Santai") + " · " + modelLabel();
     setResult("translate",
       '<div class="card"><div class="card-head"><h2>' + esc(LANG[p[1]]) + ' <span class="meta">· ' + esc(meta) + '</span></h2>' + copyBtn("out-translate") + '</div>' +
@@ -1084,6 +1119,8 @@
     }});
     if(sk) sk.remove();
     target.textContent = clean(full.trim());
+    var metaEl = $("#r-translate .card-head .meta");
+    if(metaEl) metaEl.textContent = "· " + (state.tone === "formal" ? "Formal" : "Santai") + " · " + modelLabel();
     if(!full.trim()) throw AIError("other", "Jawaban kosong. Coba lagi atau ganti model.");
   }
 
