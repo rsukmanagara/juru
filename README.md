@@ -6,7 +6,7 @@ Aplikasi web untuk penutur bahasa Indonesia yang bekerja dengan bahasa Inggris.
 - **Perbaiki:** tulisan bahasa Inggrismu dirapikan, lengkap dengan letak setiap kesalahan, seharusnya bagaimana, alasannya, dan artinya dalam bahasa Indonesia
 - **Pahami:** penjelasan maksud sebuah kalimat, idiom, atau email, termasuk nada dan ungkapan pentingnya
 - **Input suara:** tekan ikon mikrofon untuk mendikte (Chrome, Edge, atau Safari)
-- **Pilih AI-nya sendiri:** Gemini, ChatGPT (OpenAI), atau Claude (Anthropic)
+- **Ditenagai Gemini:** pakai kuota gratis Google AI Studio
 - **Bisa dipasang di HP:** punya ikon di layar utama, terbuka layar penuh, dan tetap terbuka walau sedang offline
 
 Aplikasinya ada di `index.html`, ditambah `manifest.webmanifest`, `sw.js`, dan folder `icons/` supaya bisa dipasang di HP. Tanpa server dan tanpa proses build.
@@ -27,15 +27,11 @@ Fitur AI tetap butuh internet, tapi aplikasinya sendiri tetap bisa dibuka saat o
 
 ## Menyiapkan API key
 
-Buka aplikasinya, tekan ikon kunci di kanan atas, lalu isi minimal satu key:
+Ambil API key gratis di [aistudio.google.com/apikey](https://aistudio.google.com/apikey). Kuota gratisnya punya batas per menit dan per hari.
 
-| AI | Tempat ambil key | Biaya |
-| --- | --- | --- |
-| Gemini | [aistudio.google.com/apikey](https://aistudio.google.com/apikey) | Ada kuota gratis dengan batas per menit dan per hari |
-| ChatGPT | [platform.openai.com/api-keys](https://platform.openai.com/api-keys) | Bayar sesuai pemakaian, isi saldo dulu |
-| Claude | [console.anthropic.com/settings/keys](https://console.anthropic.com/settings/keys) | Bayar sesuai pemakaian, isi saldo dulu |
+Buka aplikasinya, tekan ikon kunci di kanan atas, lalu tempel key-nya di bagian **Gemini**. Kalau sudah memasang Server Juru, cukup isi PIN.
 
-Langganan ChatGPT Plus, Gemini Advanced, atau Claude Pro **tidak** termasuk akses API. API key dibuat dan ditagih terpisah.
+Langganan Gemini Advanced **tidak** termasuk akses API. API key dibuat terpisah di Google AI Studio.
 
 Tekan **Tes koneksi** untuk memastikan key-nya benar. Tes ini juga memuat daftar model yang tersedia untuk key-mu, dan model mana pun dari daftar itu bisa kamu isi di kolom **Model lain**.
 
@@ -45,10 +41,10 @@ Supaya tidak perlu mengisi API key di setiap HP atau laptop, pasang **Server Jur
 
 ## Keamanan
 
-- API key **hanya disimpan di browser** (localStorage) di perangkat yang kamu pakai, dan dikirim langsung ke Google, OpenAI, atau Anthropic. Key **tidak** masuk ke repo ini.
+- API key **hanya disimpan di browser** (localStorage) di perangkat yang kamu pakai, dan dikirim langsung ke Google. Key **tidak** masuk ke repo ini.
 - **Jangan pernah menulis API key di dalam kode.** Repo ini publik, dan key yang bocor bisa dipakai orang lain atas tagihanmu.
 - Jangan mengisi key di komputer umum. Kalau sudah terlanjur, tekan **Hapus semua key**.
-- Batasi pemakaian dari dasbor masing-masing penyedia, misalnya dengan batas tagihan bulanan.
+- Kalau project Google AI Studio-mu memakai billing, pasang batas pemakaian di dasbor Google.
 - Siapa pun yang membuka link aplikasi ini harus memakai key-nya sendiri. Untuk membagikan aplikasi tanpa membagikan key, perlu server perantara kecil (misalnya Cloudflare Workers) yang menyimpan key secara rahasia.
 
 ## Catatan

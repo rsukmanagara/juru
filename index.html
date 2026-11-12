@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-title" content="Juru">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>Juru — Asisten Bahasa Inggris</title>
-<meta name="description" content="Terjemahkan Inggris–Indonesia dengan nada formal atau santai, perbaiki tulisan bahasa Inggris, dan pahami maksud sebuah kalimat. Bisa pakai Gemini, ChatGPT, atau Claude.">
+<meta name="description" content="Terjemahkan Inggris–Indonesia dengan nada formal atau santai, perbaiki tulisan bahasa Inggris, dan pahami maksud sebuah kalimat. Didukung Gemini.">
 <meta name="theme-color" content="#FAFAFA" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#141415" media="(prefers-color-scheme: dark)">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
@@ -329,7 +329,7 @@
   </div>
 
   <div class="banner" id="setup-banner" hidden>
-    <span>Masukkan PIN Server Juru, atau API key Gemini, ChatGPT, atau Claude, untuk mulai</span>
+    <span>Masukkan PIN Server Juru atau API key Gemini untuk mulai</span>
     <button class="primary" data-open-settings>Buka pengaturan</button>
   </div>
 
@@ -489,38 +489,14 @@
         ["gemini-flash-latest", "Gemini Flash · seimbang"],
         ["gemini-flash-lite-latest", "Gemini Flash-Lite · cepat"]
       ]
-    },
-    openai: {
-      name: "ChatGPT",
-      tagline: "OpenAI · bayar sesuai pemakaian",
-      keyUrl: "https://platform.openai.com/api-keys",
-      keyLabel: "Ambil key di OpenAI",
-      placeholder: "Tempel API key OpenAI (sk-…)",
-      models: [
-        ["gpt-5.6-luna", "GPT-5.6 Luna · cepat"],
-        ["gpt-5.6-terra", "GPT-5.6 Terra · seimbang"],
-        ["gpt-5.6-sol", "GPT-5.6 Sol · paling teliti"]
-      ]
-    },
-    anthropic: {
-      name: "Claude",
-      tagline: "Anthropic · bayar sesuai pemakaian",
-      keyUrl: "https://console.anthropic.com/settings/keys",
-      keyLabel: "Ambil key di Anthropic",
-      placeholder: "Tempel API key Claude (sk-ant-…)",
-      models: [
-        ["claude-haiku-5-5", "Claude Haiku · cepat"],
-        ["claude-sonnet-5-5", "Claude Sonnet · seimbang"],
-        ["claude-opus-5-5", "Claude Opus · paling teliti"]
-      ]
     }
   };
-  var PROV_IDS = ["gemini", "openai", "anthropic"];
+  var PROV_IDS = ["gemini"];
   function getKey(p){ return load("key:"+p, ""); }
   function getCustom(p){ return load("cm:"+p, ""); }
   // Server Juru (Cloudflare Worker) — holds the API keys, devices only need a PIN.
   var DEFAULT_SERVER = "https://juru.rizalsukmanagara.workers.dev";
-  var BASES = { gemini: "https://generativelanguage.googleapis.com", openai: "https://api.openai.com", anthropic: "https://api.anthropic.com" };
+  var BASES = { gemini: "https://generativelanguage.googleapis.com" };
   function serverUrl(){ return str(load("server:url", DEFAULT_SERVER)).replace(/\/+$/, ""); }
   function serverPin(){ return load("server:pin", ""); }
   function serverProv(){ try{ return JSON.parse(load("server:prov", "{}")) || {}; }catch(e){ return {}; } }
@@ -530,10 +506,7 @@
   // Where to send a request: straight to the provider with this device's key, or through Server Juru with the PIN.
   function endpoint(p, path, key){
     if(!key && viaServer(p)) return { url: serverUrl() + "/" + p + path, headers: { "x-juru-pin": serverPin() } };
-    var h = p === "gemini" ? { "x-goog-api-key": key }
-      : p === "openai" ? { "Authorization": "Bearer " + key }
-      : { "x-api-key": key, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" };
-    return { url: BASES[p] + path, headers: h };
+    return { url: BASES[p] + path, headers: { "x-goog-api-key": key } };
   }
   async function pingServer(url, pin){
     var res;
@@ -618,34 +591,6 @@
           var c = d.candidates && d.candidates[0];
           if(c && c.content && c.content.parts) c.content.parts.forEach(function(part){ if(!part.thought) emit(part.text); });
         });
-      }else if(p === "openai"){
-        var body = { model: model, stream: true, messages: [{ role: "user", content: prompt }] };
-        if(opts.json) body.response_format = { type: "json_object" };
-        if(fast && /^(gpt-5|o\d)/.test(model)) body.reasoning_effort = "low";
-        var eo = endpoint("openai", "/v1/chat/completions", key);
-        eo.headers["Content-Type"] = "application/json";
-        res = await fetch(eo.url, {
-          method: "POST", signal: opts.signal, headers: eo.headers,
-          body: JSON.stringify(body)
-        });
-        if(!res.ok) await failFrom(res);
-        await readSSE(res, function(d){
-          if(d.error) throw AIError("other", d.error.message);
-          var c = d.choices && d.choices[0];
-          if(c && c.delta) emit(c.delta.content);
-        });
-      }else{
-        var ea = endpoint("anthropic", "/v1/messages", key);
-        ea.headers["Content-Type"] = "application/json";
-        res = await fetch(ea.url, {
-          method: "POST", signal: opts.signal, headers: ea.headers,
-          body: JSON.stringify({ model: model, max_tokens: 4096, stream: true, messages: [{ role: "user", content: prompt }] })
-        });
-        if(!res.ok) await failFrom(res);
-        await readSSE(res, function(d){
-          if(d.type === "error") throw AIError("other", d.error && d.error.message);
-          if(d.type === "content_block_delta" && d.delta && d.delta.type === "text_delta") emit(d.delta.text);
-        });
       }
     }catch(e){
       if(e && (e.name === "AbortError" || e.kind)) throw e;
@@ -664,18 +609,6 @@
         var g = await res.json();
         ids = (g.models || []).filter(function(m){ return (m.supportedGenerationMethods || []).indexOf("generateContent") > -1; })
           .map(function(m){ return String(m.name || "").replace(/^models\//, ""); });
-      }else if(p === "openai"){
-        var lo = endpoint("openai", "/v1/models", key);
-        res = await fetch(lo.url, { headers: lo.headers });
-        if(!res.ok) await failFrom(res);
-        var o = await res.json();
-        ids = (o.data || []).map(function(m){ return m.id; }).filter(function(id){ return /^(gpt|o\d|chat)/.test(id) && !/(audio|realtime|image|tts|transcribe|search|embed)/.test(id); });
-      }else{
-        var la = endpoint("anthropic", "/v1/models?limit=100", key);
-        res = await fetch(la.url, { headers: la.headers });
-        if(!res.ok) await failFrom(res);
-        var a = await res.json();
-        ids = (a.data || []).map(function(m){ return m.id; });
       }
     }catch(e){
       if(e && e.kind) throw e;
@@ -863,7 +796,7 @@
     else if(k === "rate") msg = "<b>Batas pemakaian " + esc(name) + " tercapai.</b> Tunggu sebentar, lalu coba lagi. Kalau pakai kuota gratis Gemini, batasnya per menit dan per hari.";
     else if(k === "billing") msg = "<b>Saldo atau kuota " + esc(name) + " habis.</b> Isi saldo di platform " + esc(name) + ", atau ganti ke model lain.";
     else if(k === "model") msg = "<b>Model ini tidak tersedia untuk key-mu.</b> Pilih model lain, atau isi nama model yang benar di pengaturan.";
-    else if(k === "timeout") msg = "<b>" + esc(name) + " terlalu lama menjawab.</b> Coba lagi, pilih model yang lebih cepat (misalnya Gemini Flash-Lite), atau pendekkan teksnya.";
+    else if(k === "timeout") msg = "<b>" + esc(name) + " terlalu lama menjawab.</b> Coba lagi, pilih Gemini Flash-Lite yang lebih cepat, atau pendekkan teksnya.";
     else if(k === "network") msg = "<b>Gagal tersambung ke " + esc(name) + ".</b> Periksa koneksi internetmu, lalu coba lagi.";
     else msg = "<b>Gagal memproses.</b> " + esc(e && e.message ? String(e.message).slice(0, 200) : "Coba lagi sebentar lagi.");
     var btn = (k === "nokey" || k === "auth" || k === "model" || k === "pin" || k === "server") ? ' <button class="copy" data-open-settings style="margin-top:8px">Buka pengaturan</button>' : "";

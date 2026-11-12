@@ -2,7 +2,7 @@
 // Pages and files are fetched fresh when online (so updates show up right away)
 // and served from the cache only when the network is unavailable.
 // Requests to AI providers (other origins) are never touched.
-const CACHE = "juru-v3";
+const CACHE = "juru-v4";
 const SHELL = [
   "./",
   "./index.html",
