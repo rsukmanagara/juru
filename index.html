@@ -223,6 +223,34 @@
   }
 
   /* ---- GitHub version additions ---- */
+  /* Brand */
+  .logo{display:flex;align-items:center;gap:8px;color:var(--text);text-decoration:none;min-width:0}
+  .logo-mark{width:30px;height:30px;flex:none;display:block}
+  .logo-mark.sm{width:18px;height:18px}
+  .wordmark{font-size:20px;font-weight:600;letter-spacing:-.03em;line-height:1}
+  .tagline{display:none;font-size:13px;color:var(--muted);padding-left:12px;margin-left:4px;border-left:1px solid var(--line-2);white-space:nowrap}
+  @media (min-width:900px){ .tagline{display:inline} }
+  .foot-brand{display:inline-flex;align-items:center;gap:8px}
+
+  /* Example card: the visual moment of each screen */
+  .empty.example{display:flex !important;flex-direction:column;align-items:stretch;gap:16px;border:1px solid var(--line);border-style:solid;background:var(--card);border-radius:20px;padding:20px;color:var(--text);min-height:0;text-align:left;justify-content:flex-start;box-shadow:var(--shadow-sm)}
+  .empty.example[hidden]{display:none !important}
+  .ex-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .ex-tag{height:24px;padding:0 10px;border-radius:999px;background:var(--accent);color:var(--on-accent);font-size:12px;font-weight:600;display:inline-flex;align-items:center}
+  .ex-chip{height:24px;padding:0 10px;border-radius:999px;background:var(--raised);color:var(--text-2);font-size:12px;font-weight:500;display:inline-flex;align-items:center}
+  .ex-body{display:grid;gap:10px}
+  .ex-src{margin:0;font-size:15px;color:var(--text-2);line-height:1.6;padding-left:12px;border-left:2px solid var(--line-2)}
+  .ex-src del{color:var(--bad);text-decoration:line-through;text-decoration-thickness:1.5px}
+  .ex-arrow{width:28px;height:28px;border-radius:50%;background:var(--raised);display:grid;place-items:center;color:var(--text-2);transform:rotate(90deg)}
+  .ex-result{background:var(--accent-soft);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:grid;gap:10px}
+  .ex-out{margin:0;font-size:18px;font-weight:500;line-height:1.5;letter-spacing:-.01em}
+  .ex-note{margin:0;font-size:13px;color:var(--text-2)}
+  .ex-terms{display:flex;flex-wrap:wrap;gap:8px}
+  .ex-terms span{font-size:12px;color:var(--text-2);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:4px 8px}
+  .ex-terms b{color:var(--text);font-weight:600;margin-right:4px}
+  .ex-try{align-self:flex-start;height:36px;padding:0 14px;border-radius:10px;border:1px solid var(--line-2);background:var(--card);font-size:13px;font-weight:600;color:var(--text);transition:background-color .15s var(--ease), border-color .15s var(--ease)}
+  .ex-try:hover{background:var(--raised);border-color:var(--text-2)}
+  @media (min-width:900px){ .ex-out{font-size:20px} .empty.example{padding:24px} }
   body{padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
   @media (display-mode: standalone){ html,body{overscroll-behavior-y:none} .install-only{display:none !important} }
   .install{display:flex;align-items:center;gap:12px;margin:-16px 0 24px;padding:12px 12px 12px 16px;border:1px solid var(--line);background:var(--card);border-radius:14px;box-shadow:var(--shadow-sm)}
@@ -304,7 +332,7 @@
 
 <div class="wrap">
   <header class="top">
-    <div class="logo"><span class="mk"><svg class="i" viewBox="0 0 24 24"><use href="#i-lang"/></svg></span>juru</div>
+    <a class="logo" href="./" aria-label="Juru, beranda"><svg class="logo-mark" viewBox="0 0 48 48" aria-hidden="true"><path d="M16 5h16a12 12 0 0 1 12 12v8a12 12 0 0 1-12 12H20.5l-8.2 6.6a1 1 0 0 1-1.6-1l1.2-6.1A12 12 0 0 1 4 25v-8A12 12 0 0 1 16 5z" fill="var(--accent)"/><circle cx="26.5" cy="12.2" r="2.7" fill="#171717"/><path d="M26.5 17.6v8.6a5 5 0 0 1-5 5h-1.6" fill="none" stroke="#171717" stroke-width="4.4" stroke-linecap="round"/></svg><span class="wordmark">juru</span><span class="tagline">Asisten bahasa Inggris</span></a>
     <div class="top-actions">
       <label class="model">
         <span class="sr">Pilih model AI</span>
@@ -367,7 +395,7 @@
         <p class="mic-hint" id="mh-translate" hidden></p>
       </div>
       <div class="col">
-        <div class="empty" id="e-translate">Terjemahan muncul di sini</div>
+        <div class="empty example" id="e-translate"><div class="ex-head"><span class="ex-tag">Contoh</span><span class="ex-chip">Inggris → Indonesia · Formal</span></div><div class="ex-body"><p class="ex-src">Let's touch base next week to go over the numbers.</p><span class="ex-arrow" aria-hidden="true"><svg class="i"><use href="#i-arrow"/></svg></span><div class="ex-result"><p class="ex-out">Mari kita <span class="hl">berdiskusi</span> minggu depan untuk <span class="hl">meninjau angka-angkanya</span>.</p></div></div><button class="ex-try" data-example="translate" data-text="Let&#39;s touch base next week to go over the numbers.">Coba contoh ini</button></div>
         <div class="res" id="r-translate" aria-live="polite"></div>
       </div>
     </div>
@@ -395,7 +423,7 @@
         <p class="mic-hint" id="mh-fix" hidden></p>
       </div>
       <div class="col">
-        <div class="empty" id="e-fix">Perbaikan dan penjelasannya muncul di sini</div>
+        <div class="empty example" id="e-fix"><div class="ex-head"><span class="ex-tag">Contoh</span><span class="ex-chip">2 bagian diperbaiki</span></div><div class="ex-body"><p class="ex-src">I <del>has been</del> working here <del>since</del> three years.</p><span class="ex-arrow" aria-hidden="true"><svg class="i"><use href="#i-arrow"/></svg></span><div class="ex-result"><p class="ex-out">I <span class="hl">have been</span> working here <span class="hl">for</span> three years.</p><p class="ex-note">“Since” untuk titik waktu, “for” untuk lama waktu</p></div></div><button class="ex-try" data-example="fix" data-text="I has been working here since three years.">Coba contoh ini</button></div>
         <div class="res" id="r-fix" aria-live="polite"></div>
       </div>
     </div>
@@ -423,13 +451,13 @@
         <p class="mic-hint" id="mh-explain" hidden></p>
       </div>
       <div class="col">
-        <div class="empty" id="e-explain">Penjelasan muncul di sini</div>
+        <div class="empty example" id="e-explain"><div class="ex-head"><span class="ex-tag">Contoh</span><span class="ex-chip">Idiom</span></div><div class="ex-body"><p class="ex-src">Let's circle back on this once the dust settles.</p><span class="ex-arrow" aria-hidden="true"><svg class="i"><use href="#i-arrow"/></svg></span><div class="ex-result"><p class="ex-out">Intinya: kita bahas lagi nanti, <span class="hl">setelah situasinya tenang</span>.</p><div class="ex-terms"><span><b>circle back</b> membahas lagi</span><span><b>the dust settles</b> keadaan sudah reda</span></div></div></div><button class="ex-try" data-example="explain" data-text="Let&#39;s circle back on this once the dust settles.">Coba contoh ini</button></div>
         <div class="res" id="r-explain" aria-live="polite"></div>
       </div>
     </div>
   </section>
 
-  <footer class="foot-row"><span>Hasil dibuat oleh AI dan bisa keliru. Periksa lagi untuk tulisan yang penting.</span><button class="text-btn install-only" data-install>Pasang di HP</button></footer>
+  <footer class="foot-row"><span class="foot-brand"><svg class="logo-mark sm" viewBox="0 0 48 48" aria-hidden="true"><path d="M16 5h16a12 12 0 0 1 12 12v8a12 12 0 0 1-12 12H20.5l-8.2 6.6a1 1 0 0 1-1.6-1l1.2-6.1A12 12 0 0 1 4 25v-8A12 12 0 0 1 16 5z" fill="var(--accent)"/><circle cx="26.5" cy="12.2" r="2.7" fill="#171717"/><path d="M26.5 17.6v8.6a5 5 0 0 1-5 5h-1.6" fill="none" stroke="#171717" stroke-width="4.4" stroke-linecap="round"/></svg><span>Hasil dibuat oleh AI dan bisa keliru. Periksa lagi untuk tulisan yang penting.</span></span><button class="text-btn install-only" data-install>Pasang di HP</button></footer>
 </div>
 
 <dialog class="sheet" id="install-sheet" aria-labelledby="inst-title">
@@ -886,6 +914,19 @@
     });
   });
   $$("[data-run]").forEach(function(b){ b.addEventListener("click", function(){ run(b.dataset.run); }); });
+  // "Coba contoh ini": put the example sentence into the editor so the user can run it
+  $$("[data-example]").forEach(function(b){
+    b.addEventListener("click", function(){
+      var m = b.dataset.example, ta = $("#in-"+m);
+      if(m === "translate"){
+        if(state.dir !== "en-id"){ state.dir = "en-id"; save("dir", state.dir); renderDir(); }
+        if(state.tone !== "formal"){ state.tone = "formal"; save("tone", state.tone); renderTone(); }
+      }
+      ta.value = b.dataset.text; updateCount(ta);
+      ta.scrollIntoView({ behavior: "smooth", block: "center" });
+      ta.focus({ preventScroll: true });
+    });
+  });
 
   // =====================================================================
   // Voice to text
