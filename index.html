@@ -519,7 +519,7 @@
   function getKey(p){ return load("key:"+p, ""); }
   function getCustom(p){ return load("cm:"+p, ""); }
   // Server Juru (Cloudflare Worker) — holds the API keys, devices only need a PIN.
-  var DEFAULT_SERVER = "";
+  var DEFAULT_SERVER = "https://juru.rizalsukmanagara.workers.dev";
   var BASES = { gemini: "https://generativelanguage.googleapis.com", openai: "https://api.openai.com", anthropic: "https://api.anthropic.com" };
   function serverUrl(){ return str(load("server:url", DEFAULT_SERVER)).replace(/\/+$/, ""); }
   function serverPin(){ return load("server:pin", ""); }
