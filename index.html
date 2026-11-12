@@ -514,8 +514,8 @@
       keyLabel: "Ambil key di Google AI Studio",
       placeholder: "Tempel API key Gemini",
       models: [
-        ["gemini-flash-latest", "Gemini Flash · seimbang"],
-        ["gemini-flash-lite-latest", "Gemini Flash-Lite · cepat"]
+        ["gemini-flash-lite-latest", "Gemini Flash-Lite · cepat"],
+        ["gemini-flash-latest", "Gemini Flash · lebih teliti"]
       ]
     }
   };
@@ -689,9 +689,13 @@
     mode: load("mode","translate"),
     dir: load("dir","en-id"),
     tone: load("tone","formal"),
-    model: load("model","gemini::gemini-flash-latest")
+    model: load("model","gemini::gemini-flash-lite-latest")
   };
   var controllers = {};
+  if(load("default-lite", "") !== "1"){
+    save("default-lite", "1");
+    if(state.model === "gemini::gemini-flash-latest"){ state.model = "gemini::gemini-flash-lite-latest"; save("model", state.model); }
+  }
 
   function modelOptions(){
     var out = [];
@@ -860,7 +864,7 @@
     else if(k === "model") msg = "<b>Model ini tidak tersedia untuk key-mu.</b> Pilih model lain, atau isi nama model yang benar di pengaturan.";
     else if(k === "busy") msg = "<b>Gemini sedang ramai.</b> Server Google sedang penuh dan sudah dicoba beberapa kali. Biasanya cepat pulih, jadi coba lagi dalam satu atau dua menit.";
     else if(k === "location") msg = "<b>Google menolak lokasi server saat ini.</b> Biasanya hanya sebentar. Coba tekan tombolnya lagi.";
-    else if(k === "timeout") msg = "<b>" + esc(name) + " terlalu lama menjawab.</b> Coba lagi, pilih Gemini Flash-Lite yang lebih cepat, atau pendekkan teksnya.";
+    else if(k === "timeout") msg = "<b>" + esc(name) + " terlalu lama menjawab.</b> Coba lagi, atau pendekkan teksnya.";
     else if(k === "network") msg = "<b>Gagal tersambung ke " + esc(name) + ".</b> Periksa koneksi internetmu, lalu coba lagi.";
     else msg = "<b>Gagal memproses.</b> " + esc(e && e.message ? String(e.message).slice(0, 200) : "Coba lagi sebentar lagi.");
     var btn = (k === "nokey" || k === "auth" || k === "model" || k === "pin" || k === "server") ? ' <button class="copy" data-open-settings style="margin-top:8px">Buka pengaturan</button>' : "";
