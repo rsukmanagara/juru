@@ -7,8 +7,9 @@ Aplikasi web untuk penutur bahasa Indonesia yang bekerja dengan bahasa Inggris.
 - **Pahami:** penjelasan maksud sebuah kalimat, idiom, atau email, termasuk nada dan ungkapan pentingnya
 - **Input suara:** tekan ikon mikrofon untuk mendikte (Chrome, Edge, atau Safari)
 - **Pilih AI-nya sendiri:** Gemini, ChatGPT (OpenAI), atau Claude (Anthropic)
+- **Bisa dipasang di HP:** punya ikon di layar utama, terbuka layar penuh, dan tetap terbuka walau sedang offline
 
-Semuanya ada dalam satu file `index.html`, tanpa server dan tanpa proses build.
+Aplikasinya ada di `index.html`, ditambah `manifest.webmanifest`, `sw.js`, dan folder `icons/` supaya bisa dipasang di HP. Tanpa server dan tanpa proses build.
 
 ## Mengaktifkan GitHub Pages
 
@@ -16,6 +17,13 @@ Semuanya ada dalam satu file `index.html`, tanpa server dan tanpa proses build.
 2. Di bagian **Build and deployment**, pilih **Source: Deploy from a branch**
 3. Pilih branch **main** dan folder **/ (root)**, lalu tekan **Save**
 4. Tunggu 1–2 menit. Aplikasinya bisa dibuka di `https://rsukmanagara.github.io/juru/`
+
+## Memasang di HP
+
+- **iPhone:** buka aplikasinya di Safari, ketuk tombol Bagikan, pilih **Tambah ke Layar Utama**, lalu ketuk **Tambah**. Isi ulang API key sekali saat pertama membukanya dari layar utama, karena aplikasi yang dipasang di iPhone punya penyimpanan sendiri.
+- **Android:** buka di Chrome, lalu ketuk **Pasang** di banner atas. Bisa juga lewat menu ⋮ → **Instal aplikasi**.
+
+Fitur AI tetap butuh internet, tapi aplikasinya sendiri tetap bisa dibuka saat offline.
 
 ## Menyiapkan API key
 

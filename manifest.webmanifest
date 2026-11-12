@@ -1,0 +1,24 @@
+{
+  "name": "Juru — Asisten Bahasa Inggris",
+  "short_name": "Juru",
+  "description": "Terjemahkan Inggris–Indonesia, perbaiki tulisan bahasa Inggris, dan pahami maksud sebuah kalimat.",
+  "lang": "id",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FAFAFA",
+  "theme_color": "#FAFAFA",
+  "categories": ["education", "productivity", "utilities"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Terjemahkan", "url": "./#translate", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Perbaiki tulisan", "url": "./#fix", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Pahami maksud", "url": "./#explain", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}

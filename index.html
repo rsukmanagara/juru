@@ -2,12 +2,18 @@
 <html lang="id">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Juru">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>Juru — Asisten Bahasa Inggris</title>
 <meta name="description" content="Terjemahkan Inggris–Indonesia dengan nada formal atau santai, perbaiki tulisan bahasa Inggris, dan pahami maksud sebuah kalimat. Bisa pakai Gemini, ChatGPT, atau Claude.">
 <meta name="theme-color" content="#FAFAFA" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#141415" media="(prefers-color-scheme: dark)">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23C5F23A'/%3E%3Ctext x='16' y='22' font-family='Arial' font-weight='700' font-size='18' text-anchor='middle' fill='%23171717'%3Ej%3C/text%3E%3C/svg%3E">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -217,6 +223,21 @@
   }
 
   /* ---- GitHub version additions ---- */
+  body{padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+  @media (display-mode: standalone){ html,body{overscroll-behavior-y:none} .install-only{display:none !important} }
+  .install{display:flex;align-items:center;gap:12px;margin:-16px 0 24px;padding:12px 12px 12px 16px;border:1px solid var(--line);background:var(--card);border-radius:14px;box-shadow:var(--shadow-sm)}
+  .install[hidden]{display:none}
+  .install img{width:36px;height:36px;border-radius:9px;flex:none}
+  .install p{margin:0;font-size:13px;color:var(--text-2);line-height:1.4;flex:1;min-width:0}
+  .install p b{display:block;color:var(--text);font-size:14px;font-weight:600}
+  .install .primary{height:36px;padding:0 14px}
+  .foot-row{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center}
+  .foot-row .text-btn{color:var(--accent-text);padding:0}
+  .steps{margin:0;padding:0;list-style:none;display:grid;gap:12px;counter-reset:st}
+  .steps li{display:grid;grid-template-columns:28px 1fr;gap:12px;align-items:start;font-size:14px;color:var(--text)}
+  .steps li::before{counter-increment:st;content:counter(st);width:28px;height:28px;border-radius:8px;background:var(--raised);display:grid;place-items:center;font-size:13px;font-weight:600;color:var(--text-2)}
+  .steps .i{vertical-align:-3px;color:var(--text-2)}
+  .os-note{margin:0;font-size:13px;color:var(--text-2);background:var(--raised);border-radius:12px;padding:12px}
   .elapsed{margin:12px 0 0;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
   .top-actions{display:flex;align-items:center;gap:8px;min-width:0}
   .model select{max-width:min(56vw,260px);text-overflow:ellipsis}
@@ -275,6 +296,9 @@
   <symbol id="i-mic" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><path d="M12 19v3"/></symbol>
   <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></symbol>
   <symbol id="i-key" viewBox="0 0 24 24"><path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4"/><path d="m21 2-9.6 9.6"/><circle cx="7.5" cy="15.5" r="5.5"/></symbol>
+  <symbol id="i-share" viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="m16 6-4-4-4 4"/><path d="M12 2v13"/></symbol>
+  <symbol id="i-dots" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M8 12h8"/><path d="M12 8v8"/></symbol>
   <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></symbol>
 </svg>
 
@@ -296,6 +320,13 @@
     <button class="tab" role="tab" id="t-fix" aria-controls="p-fix" data-mode="fix"><svg class="i"><use href="#i-spell"/></svg>Perbaiki</button>
     <button class="tab" role="tab" id="t-explain" aria-controls="p-explain" data-mode="explain"><svg class="i"><use href="#i-bulb"/></svg>Pahami</button>
   </nav>
+
+  <div class="install install-only" id="install-banner" hidden>
+    <img src="icons/icon-192.png" alt="">
+    <p><b>Pasang Juru di HP</b>Buka langsung dari layar utama, tanpa browser</p>
+    <button class="primary" data-install>Pasang</button>
+    <button class="icon-btn" id="install-dismiss" aria-label="Tutup"><svg class="i"><use href="#i-x"/></svg></button>
+  </div>
 
   <div class="banner" id="setup-banner" hidden>
     <span>Tambahkan API key Gemini, ChatGPT, atau Claude dulu untuk mulai. Key hanya disimpan di browser ini.</span>
@@ -398,8 +429,21 @@
     </div>
   </section>
 
-  <footer>Hasil dibuat oleh AI dan bisa keliru. Periksa lagi untuk tulisan yang penting.</footer>
+  <footer class="foot-row"><span>Hasil dibuat oleh AI dan bisa keliru. Periksa lagi untuk tulisan yang penting.</span><button class="text-btn install-only" data-install>Pasang di HP</button></footer>
 </div>
+
+<dialog class="sheet" id="install-sheet" aria-labelledby="inst-title">
+  <div class="sheet-in">
+    <div class="sheet-head">
+      <h2 id="inst-title">Pasang Juru di HP</h2>
+      <button class="icon-btn" data-close-install aria-label="Tutup"><svg class="i"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="sheet-body" id="install-body"></div>
+    <div class="sheet-foot" style="justify-content:flex-end">
+      <button class="primary" data-close-install>Mengerti</button>
+    </div>
+  </div>
+</dialog>
 
 <dialog class="sheet" id="settings" aria-labelledby="set-title">
   <div class="sheet-in">
@@ -1087,6 +1131,65 @@
   }
 
   // =====================================================================
+  // Install on phone (PWA)
+  // =====================================================================
+  var deferredInstall = null;
+  var ua = navigator.userAgent || "";
+  var isIOS = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  var isAndroid = /Android/i.test(ua);
+  var isMobile = isIOS || isAndroid || (window.matchMedia && matchMedia("(pointer: coarse)").matches);
+  function isStandalone(){
+    return (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true;
+  }
+  function renderInstallBanner(){
+    $("#install-banner").hidden = isStandalone() || !isMobile || load("install-dismissed", "") === "1";
+  }
+  window.addEventListener("beforeinstallprompt", function(e){ e.preventDefault(); deferredInstall = e; renderInstallBanner(); });
+  window.addEventListener("appinstalled", function(){ deferredInstall = null; save("install-dismissed", "1"); renderInstallBanner(); });
+  $("#install-dismiss").addEventListener("click", function(){ save("install-dismissed", "1"); renderInstallBanner(); });
+
+  var instDlg = $("#install-sheet");
+  function openInstallGuide(){
+    var html;
+    if(isIOS){
+      html = '<ol class="steps">' +
+        '<li><span>Buka halaman ini di <b>Safari</b></span></li>' +
+        '<li><span>Ketuk tombol <b>Bagikan</b> ' + icon("share") + ' di bilah bawah atau atas</span></li>' +
+        '<li><span>Gulir ke bawah, pilih <b>Tambah ke Layar Utama</b> ' + icon("plus") + '</span></li>' +
+        '<li><span>Ketuk <b>Tambah</b>. Ikon Juru muncul di layar utama</span></li>' +
+        '</ol>' +
+        '<p class="os-note">Di iPhone, aplikasi yang dipasang punya penyimpanan sendiri. Isi ulang API key sekali saat pertama membukanya dari layar utama.</p>';
+    }else if(isAndroid){
+      html = '<ol class="steps">' +
+        '<li><span>Buka halaman ini di <b>Chrome</b></span></li>' +
+        '<li><span>Ketuk menu ' + icon("dots") + ' di kanan atas</span></li>' +
+        '<li><span>Pilih <b>Instal aplikasi</b> atau <b>Tambahkan ke layar utama</b></span></li>' +
+        '<li><span>Ketuk <b>Instal</b>. Juru muncul di layar utama dan daftar aplikasi</span></li>' +
+        '</ol>';
+    }else{
+      html = '<p>Buka <b>' + esc(location.href.split("#")[0]) + '</b> di HP-mu, lalu tekan <b>Pasang di HP</b> di bagian bawah halaman untuk melihat langkahnya.</p>' +
+        '<p class="os-note">Di laptop dengan Chrome atau Edge, Juru juga bisa dipasang lewat ikon instal di ujung kanan bilah alamat.</p>';
+    }
+    $("#install-body").innerHTML = html;
+    if(typeof instDlg.showModal === "function") instDlg.showModal(); else instDlg.setAttribute("open", "");
+  }
+  function closeInstallGuide(){ if(instDlg.open){ if(typeof instDlg.close === "function") instDlg.close(); else instDlg.removeAttribute("open"); } }
+  document.addEventListener("click", async function(e){
+    if(e.target.closest("[data-close-install]")){ closeInstallGuide(); return; }
+    if(!e.target.closest("[data-install]")) return;
+    if(deferredInstall){
+      var prompt = deferredInstall; deferredInstall = null;
+      try{ prompt.prompt(); var choice = await prompt.userChoice; if(choice && choice.outcome === "accepted") save("install-dismissed", "1"); }catch(err){ openInstallGuide(); }
+      renderInstallBanner();
+    }else openInstallGuide();
+  });
+  instDlg.addEventListener("click", function(e){ if(e.target === instDlg) closeInstallGuide(); });
+
+  if("serviceWorker" in navigator && window.isSecureContext && location.protocol !== "file:"){
+    window.addEventListener("load", function(){ navigator.serviceWorker.register("sw.js").catch(function(){}); });
+  }
+
+  // =====================================================================
   // Init
   // =====================================================================
   if(["translate","fix","explain"].indexOf(state.mode) === -1) state.mode = "translate";
@@ -1098,7 +1201,9 @@
     var p = state.model.split("::")[0];
     if(!getKey(p)) openSettings(p);
   });
-  setMode(state.mode); renderDir(); renderTone();
+  var hashMode = (location.hash || "").slice(1);
+  if(["translate","fix","explain"].indexOf(hashMode) > -1) state.mode = hashMode;
+  setMode(state.mode); renderDir(); renderTone(); renderInstallBanner();
 })();
 
 </script>
