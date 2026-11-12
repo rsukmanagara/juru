@@ -552,6 +552,7 @@
     try{ var j = await res.json(); msg = (j.error && (j.error.message || j.error.type)) || j.message || ""; }catch(e){}
     var s = res.status;
     if(s === 401 && /PIN/.test(msg)) throw AIError("pin", msg, s);
+    if(/location is not supported/i.test(msg)) throw AIError("location", msg, s);
     if(s === 403 && /Situs ini tidak diizinkan/.test(msg)) throw AIError("origin", msg, s);
     if(s === 400 && /thinking|reasoning|unsupported|unknown name|unrecognized|not supported|invalid value/i.test(msg)) throw AIError("param", msg, s);
     if(s === 401 || s === 403) throw AIError("auth", msg, s);
@@ -824,6 +825,7 @@
     else if(k === "rate") msg = "<b>Batas pemakaian " + esc(name) + " tercapai.</b> Tunggu sebentar, lalu coba lagi. Kalau pakai kuota gratis Gemini, batasnya per menit dan per hari.";
     else if(k === "billing") msg = "<b>Saldo atau kuota " + esc(name) + " habis.</b> Isi saldo di platform " + esc(name) + ", atau ganti ke model lain.";
     else if(k === "model") msg = "<b>Model ini tidak tersedia untuk key-mu.</b> Pilih model lain, atau isi nama model yang benar di pengaturan.";
+    else if(k === "location") msg = "<b>Google menolak lokasi server saat ini.</b> Biasanya hanya sebentar. Coba tekan tombolnya lagi.";
     else if(k === "timeout") msg = "<b>" + esc(name) + " terlalu lama menjawab.</b> Coba lagi, pilih Gemini Flash-Lite yang lebih cepat, atau pendekkan teksnya.";
     else if(k === "network") msg = "<b>Gagal tersambung ke " + esc(name) + ".</b> Periksa koneksi internetmu, lalu coba lagi.";
     else msg = "<b>Gagal memproses.</b> " + esc(e && e.message ? String(e.message).slice(0, 200) : "Coba lagi sebentar lagi.");
