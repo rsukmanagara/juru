@@ -11,22 +11,24 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>Juru — Asisten Bahasa Inggris</title>
 <meta name="description" content="Terjemahkan Inggris–Indonesia dengan nada formal atau santai, perbaiki tulisan bahasa Inggris, dan pahami maksud sebuah kalimat. Didukung Gemini.">
-<meta name="theme-color" content="#FAFAFA" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#141415" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#F8FAFC" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0E1218" media="(prefers-color-scheme: dark)">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#FAFAFA; --card:#FFFFFF; --raised:#F4F4F5;
-    --text:#171717; --text-2:#525252; --muted:#737373;
-    --line:rgba(23,23,23,.08); --line-2:rgba(23,23,23,.14);
-    --accent:#C5F23A; --accent-hover:#B6E52A; --on-accent:#171717;
-    --accent-text:#4D7C0F; --accent-soft:#F3FBD9; --hl:#D9F99D;
+    /* Palette: Sky Blue #2C99D6 (brand), Cloud White #F8FAFC (background), Scarlet Red #EB2F33 (actions) */
+    --bg:#F8FAFC; --card:#FFFFFF; --raised:#F1F5F9;
+    --text:#0F172A; --text-2:#475569; --muted:#64748B;
+    --line:rgba(15,23,42,.08); --line-2:rgba(15,23,42,.14);
+    --brand:#2C99D6; --brand-strong:#1A74A8; --on-brand:#FFFFFF;
+    --accent:#DC2B30; --accent-hover:#C4242A; --on-accent:#FFFFFF;
+    --accent-text:#1A74A8; --accent-soft:#E8F4FB; --hl:rgba(44,153,214,.24);
     --bad:#C2281C; --bad-soft:#FFE9E6;
     --good:#16A34A;
-    --tab-on-bg:#171717; --tab-on-fg:#FFFFFF;
+    --tab-on-bg:#1A74A8; --tab-on-fg:#FFFFFF;
     --shadow-sm:0 1px 2px rgba(0,0,0,.05);
     --shadow:0 8px 24px rgba(0,0,0,.06);
     --ease:cubic-bezier(.22,1,.36,1);
@@ -34,14 +36,15 @@
   }
   @media (prefers-color-scheme: dark){
     :root{
-      --bg:#141415; --card:#19191B; --raised:#232325;
-      --text:#EDEDED; --text-2:#A1A1A6; --muted:#85858B;
-      --line:rgba(237,237,237,.08); --line-2:rgba(237,237,237,.14);
-      --accent:#C5F23A; --accent-hover:#D2F75C; --on-accent:#141415;
-      --accent-text:#C5F23A; --accent-soft:rgba(197,242,58,.08); --hl:rgba(197,242,58,.30);
+      --bg:#0E1218; --card:#151B23; --raised:#1E2630;
+      --text:#E8EDF3; --text-2:#A3AEBD; --muted:#8692A3;
+      --line:rgba(232,237,243,.08); --line-2:rgba(232,237,243,.14);
+      --brand:#5AB4E6; --brand-strong:#5AB4E6; --on-brand:#0B1724;
+      --accent:#DC2B30; --accent-hover:#E5383C; --on-accent:#FFFFFF;
+      --accent-text:#5AB4E6; --accent-soft:rgba(44,153,214,.14); --hl:rgba(90,180,230,.30);
       --bad:#FF8A80; --bad-soft:rgba(229,72,77,.16);
       --good:#4CC38A;
-      --tab-on-bg:#EDEDED; --tab-on-fg:#141415;
+      --tab-on-bg:#5AB4E6; --tab-on-fg:#0B1724;
       --shadow-sm:none; --shadow:none;
     }
   }
@@ -60,7 +63,6 @@
   .wrap{max-width:1120px;margin:0 auto;padding:0 20px 64px}
   .top{height:64px;display:flex;align-items:center;justify-content:space-between;gap:12px}
   .logo{font-size:18px;font-weight:600;letter-spacing:-.01em;display:flex;align-items:center;gap:8px}
-  .logo .mk{width:20px;height:20px;border-radius:6px;background:var(--accent);display:grid;place-items:center;color:var(--on-accent)}
   .logo .mk svg{width:12px;height:12px;stroke-width:2}
   .model{position:relative;display:inline-flex;align-items:center}
   .model select{appearance:none;-webkit-appearance:none;height:36px;border:1px solid var(--line);background:var(--card);border-radius:10px;padding:0 32px 0 12px;font-size:13px;font-weight:500;color:var(--text);cursor:pointer;box-shadow:var(--shadow-sm);transition:border-color .15s var(--ease)}
@@ -72,8 +74,7 @@
   .tab{height:40px;border:0;background:none;border-radius:8px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px;font-weight:500;color:var(--text-2);transition:background-color .15s var(--ease), color .15s var(--ease)}
   .tab:hover{color:var(--text)}
   .tab[aria-selected="true"]{background:var(--tab-on-bg);color:var(--tab-on-fg)}
-  .tab[aria-selected="true"] .i{color:var(--accent)}
-  @media (prefers-color-scheme: dark){ .tab[aria-selected="true"] .i{color:#4D7C0F} }
+  .tab[aria-selected="true"] .i{color:currentColor}
 
   /* Head */
   .panel[hidden]{display:none}
@@ -165,8 +166,8 @@
 
   /* Fix */
   .score{display:flex;align-items:center;gap:16px}
-  .score .num{font-size:32px;line-height:1;font-weight:600;font-variant-numeric:tabular-nums;color:var(--accent-text);min-width:32px}
-  .score .ok-ic{width:32px;height:32px;border-radius:8px;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;flex:none}
+  .score .num{font-size:32px;line-height:1;font-weight:600;font-variant-numeric:tabular-nums;color:var(--accent);min-width:32px}
+  .score .ok-ic{width:32px;height:32px;border-radius:8px;background:var(--tab-on-bg);color:var(--tab-on-fg);display:grid;place-items:center;flex:none}
   .score p{margin:0;color:var(--text-2);font-size:14px}
   .score b{display:block;color:var(--text);font-weight:600;font-size:15px}
   mark.fix{background:linear-gradient(transparent 52%, var(--hl) 52%);color:inherit;padding:0 2px;border-radius:2px}
@@ -236,7 +237,7 @@
   .empty.example{display:flex !important;flex-direction:column;align-items:stretch;gap:16px;border:1px solid var(--line);border-style:solid;background:var(--card);border-radius:20px;padding:20px;color:var(--text);min-height:0;text-align:left;justify-content:flex-start;box-shadow:var(--shadow-sm)}
   .empty.example[hidden]{display:none !important}
   .ex-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-  .ex-tag{height:24px;padding:0 10px;border-radius:999px;background:var(--accent);color:var(--on-accent);font-size:12px;font-weight:600;display:inline-flex;align-items:center}
+  .ex-tag{height:24px;padding:0 10px;border-radius:999px;background:var(--tab-on-bg);color:var(--tab-on-fg);font-size:12px;font-weight:600;display:inline-flex;align-items:center}
   .ex-chip{height:24px;padding:0 10px;border-radius:999px;background:var(--raised);color:var(--text-2);font-size:12px;font-weight:500;display:inline-flex;align-items:center}
   .ex-body{display:grid;gap:10px}
   .ex-src{margin:0;font-size:15px;color:var(--text-2);line-height:1.6;padding-left:12px;border-left:2px solid var(--line-2)}
@@ -332,7 +333,7 @@
 
 <div class="wrap">
   <header class="top">
-    <a class="logo" href="./" aria-label="Juru, beranda"><svg class="logo-mark" viewBox="0 0 48 48" aria-hidden="true"><path d="M16 5h16a12 12 0 0 1 12 12v8a12 12 0 0 1-12 12H20.5l-8.2 6.6a1 1 0 0 1-1.6-1l1.2-6.1A12 12 0 0 1 4 25v-8A12 12 0 0 1 16 5z" fill="var(--accent)"/><circle cx="26.5" cy="12.2" r="2.7" fill="#171717"/><path d="M26.5 17.6v8.6a5 5 0 0 1-5 5h-1.6" fill="none" stroke="#171717" stroke-width="4.4" stroke-linecap="round"/></svg><span class="wordmark">juru</span><span class="tagline">Asisten bahasa Inggris</span></a>
+    <a class="logo" href="./" aria-label="Juru, beranda"><svg class="logo-mark" viewBox="0 0 48 48" aria-hidden="true"><path d="M16 5h16a12 12 0 0 1 12 12v8a12 12 0 0 1-12 12H20.5l-8.2 6.6a1 1 0 0 1-1.6-1l1.2-6.1A12 12 0 0 1 4 25v-8A12 12 0 0 1 16 5z" fill="#2C99D6"/><circle cx="26.5" cy="12.2" r="2.7" fill="#FFFFFF"/><path d="M26.5 17.6v8.6a5 5 0 0 1-5 5h-1.6" fill="none" stroke="#FFFFFF" stroke-width="4.4" stroke-linecap="round"/></svg><span class="wordmark">juru</span><span class="tagline">Asisten bahasa Inggris</span></a>
     <div class="top-actions">
       <label class="model">
         <span class="sr">Pilih model AI</span>
@@ -457,7 +458,7 @@
     </div>
   </section>
 
-  <footer class="foot-row"><span class="foot-brand"><svg class="logo-mark sm" viewBox="0 0 48 48" aria-hidden="true"><path d="M16 5h16a12 12 0 0 1 12 12v8a12 12 0 0 1-12 12H20.5l-8.2 6.6a1 1 0 0 1-1.6-1l1.2-6.1A12 12 0 0 1 4 25v-8A12 12 0 0 1 16 5z" fill="var(--accent)"/><circle cx="26.5" cy="12.2" r="2.7" fill="#171717"/><path d="M26.5 17.6v8.6a5 5 0 0 1-5 5h-1.6" fill="none" stroke="#171717" stroke-width="4.4" stroke-linecap="round"/></svg><span>Hasil dibuat oleh AI dan bisa keliru. Periksa lagi untuk tulisan yang penting.</span></span><button class="text-btn install-only" data-install>Pasang di HP</button></footer>
+  <footer class="foot-row"><span class="foot-brand"><svg class="logo-mark sm" viewBox="0 0 48 48" aria-hidden="true"><path d="M16 5h16a12 12 0 0 1 12 12v8a12 12 0 0 1-12 12H20.5l-8.2 6.6a1 1 0 0 1-1.6-1l1.2-6.1A12 12 0 0 1 4 25v-8A12 12 0 0 1 16 5z" fill="#2C99D6"/><circle cx="26.5" cy="12.2" r="2.7" fill="#FFFFFF"/><path d="M26.5 17.6v8.6a5 5 0 0 1-5 5h-1.6" fill="none" stroke="#FFFFFF" stroke-width="4.4" stroke-linecap="round"/></svg><span>Hasil dibuat oleh AI dan bisa keliru. Periksa lagi untuk tulisan yang penting.</span></span><button class="text-btn install-only" data-install>Pasang di HP</button></footer>
 </div>
 
 <dialog class="sheet" id="install-sheet" aria-labelledby="inst-title">
